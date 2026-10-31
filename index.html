@@ -544,15 +544,6 @@
 <script src="js/exporter.js"></script>
 <script src="js/app.js"></script>
 
-<script>
-// Helper for ekspor tab switching
-function switchExpTab(btn, tabId) {
-  document.querySelectorAll('#page-ekspor .tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#page-ekspor .tab-panel').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(tabId)?.classList.add('active');
-}
-</script>
 
 </body>
 </html>

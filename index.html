@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTrack AI – Analisis Data Akademik Mahasiswa</title>
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- SheetJS CDN (read/write Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ── Toast Container ──────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🎓 EduTrack AI</h1>
+    <span>Analisis Data Akademik Mahasiswa</span>
+  </div>
+
+  <div class="sidebar-section-label">Menu Utama</div>
+  <div class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
+  <div class="nav-item" data-page="agent">   <span class="nav-icon">🤖</span> AI Agent</div>
+  <div class="nav-item" data-page="visualisasi"><span class="nav-icon">📊</span> Visualisasi</div>
+  <div class="nav-item" data-page="insights"><span class="nav-icon">💡</span> AI Insights</div>
+  <div class="nav-item" data-page="mahasiswa"><span class="nav-icon">👨‍🎓</span> Data Mahasiswa</div>
+  <div class="nav-item" data-page="ekspor">  <span class="nav-icon">📁</span> Ekspor Laporan</div>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-label">📂 Sumber Data</div>
+
+  <div class="data-panel">
+    <button class="btn-sidebar" id="btn-load-demo">🔄 Muat Dataset Demo</button>
+    <label>Upload CSV / Excel:</label>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" />
+      📂 Klik atau seret file di sini
+    </div>
+    <span class="data-badge" id="data-badge" style="display:none"></span>
+  </div>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-label">🔎 Filter Data</div>
+  <div class="data-panel">
+    <div class="filter-group">
+      <label>Program Studi</label>
+      <select id="filter-prodi"><option value="">Semua Prodi</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Angkatan</label>
+      <select id="filter-angkatan"><option value="">Semua Angkatan</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Maks. Semester</label>
+      <input type="range" id="filter-semester" min="1" max="8" value="8" />
+      <div class="range-labels"><span>1</span><span id="filter-sem-label">8</span></div>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">EduTrack AI v2.0 · Pure HTML/JS · Tanpa Backend</div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <div>
+      <button class="btn-menu" id="btn-menu">☰</button>
+    </div>
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-subtitle" id="topbar-sub">Ringkasan data akademik mahasiswa</div>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:.8rem;color:#57606a" id="topbar-info">Siap digunakan</span>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: DASHBOARD
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h2>🏠 Dashboard Akademik</h2>
+      <p>Ringkasan statistik dan visualisasi utama data mahasiswa.</p>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-val" id="kpi-mahasiswa">—</div>
+        <div class="kpi-lbl">Total Mahasiswa</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📝</div>
+        <div class="kpi-val" id="kpi-nilai">—</div>
+        <div class="kpi-lbl">Rata-rata Nilai</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🎓</div>
+        <div class="kpi-val" id="kpi-ipk">—</div>
+        <div class="kpi-lbl">Rata-rata IPK</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-val" id="kpi-kehadiran">—</div>
+        <div class="kpi-lbl">Rata-rata Kehadiran</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🏫</div>
+        <div class="kpi-val" id="kpi-prodi">—</div>
+        <div class="kpi-lbl">Program Studi</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📚</div>
+        <div class="kpi-val" id="kpi-mk">—</div>
+        <div class="kpi-lbl">Mata Kuliah</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⚠️</div>
+        <div class="kpi-val" id="kpi-missing" style="color:var(--warn)">—</div>
+        <div class="kpi-lbl">Nilai Kosong</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔁</div>
+        <div class="kpi-val" id="kpi-duplikat" style="color:var(--orange)">—</div>
+        <div class="kpi-lbl">Data Duplikat</div>
+      </div>
+    </div>
+
+    <div class="section-title">📊 Distribusi Nilai & Grade</div>
+    <div class="chart-row cols-1-2">
+      <div class="card">
+        <div class="card-title">📊 Distribusi Nilai (Histogram)</div>
+        <div class="chart-container"><canvas id="chart-dist" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎓 Distribusi Huruf Mutu</div>
+        <div class="chart-container"><canvas id="chart-grade-pie" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">📈 Perkembangan Prestasi Per Semester</div>
+    <div class="card">
+      <div class="card-title">📈 Rata-rata Nilai & IPK Per Semester</div>
+      <div class="chart-container"><canvas id="chart-semester" height="140"></canvas></div>
+    </div>
+
+    <div class="section-title">🏫 Perbandingan Program Studi</div>
+    <div class="chart-row cols-2">
+      <div class="card">
+        <div class="card-title">🏫 Nilai & Kehadiran Per Prodi</div>
+        <div class="chart-container"><canvas id="chart-prodi-bar" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎓 IPK Per Program Studi</div>
+        <div class="chart-container"><canvas id="chart-ipk-prodi" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">💡 Quick Insights</div>
+    <div class="insight-grid" id="quick-insights"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: AI AGENT
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page" id="page-agent">
+    <div class="page-header">
+      <h2>🤖 AI Agent – Tanya Jawab Berbasis Data</h2>
+      <p>Ajukan pertanyaan dalam bahasa Indonesia. AI Agent menjawab berdasarkan data aktual — tidak mengarang informasi.</p>
+    </div>
+
+    <!-- AI Config Panel -->
+    <div class="config-panel" id="ai-config-panel">
+      <h4>⚙️ Pengaturan AI Agent</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label>Mode AI:</label>
+          <select id="ai-mode">
+            <option value="local" selected>🔒 Mode Lokal (Tanpa API, Gratis)</option>
+            <option value="api">🌐 Mode API (OpenAI-compatible)</option>
+          </select>
+        </div>
+        <div id="api-fields" style="display:none">
+          <label>API Key:</label>
+          <input type="password" id="ai-apikey" placeholder="sk-..." />
+          <label>Model:</label>
+          <select id="ai-model">
+            <option value="gpt-4o-mini">gpt-4o-mini (Hemat)</option>
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          </select>
+          <label>API URL:</label>
+          <input type="text" id="ai-url" value="https://api.openai.com/v1/chat/completions" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-save-config" style="margin-top:8px">Simpan Konfigurasi</button>
+    </div>
+
+    <!-- Example chips -->
+    <div class="section-title">💡 Contoh Pertanyaan</div>
+    <div class="example-chips">
+      <span class="chip">Siapa mahasiswa dengan nilai tertinggi?</span>
+      <span class="chip">Siapa 5 mahasiswa dengan IPK tertinggi?</span>
+      <span class="chip">Mata kuliah apa yang memiliki tingkat kelulusan terendah?</span>
+      <span class="chip">Apakah kehadiran memengaruhi nilai mahasiswa?</span>
+      <span class="chip">Tampilkan ringkasan statistik akademik</span>
+      <span class="chip">Bagaimana tren nilai per semester?</span>
+      <span class="chip">Tampilkan distribusi grade mahasiswa</span>
+      <span class="chip">Siapa mahasiswa yang perlu pendampingan?</span>
+      <span class="chip">Bagaimana perbandingan antar program studi?</span>
+      <span class="chip">Berikan insight dan temuan akademik</span>
+      <span class="chip">Bagaimana kualitas data saat ini?</span>
+    </div>
+
+    <!-- Chat area -->
+    <div class="section-title">💬 Percakapan</div>
+    <div class="chat-area" id="chat-area">
+      <div class="chat-msg agent">
+        <div class="chat-label">🤖 EduTrack AI</div>
+        <div class="chat-bubble">Halo! Saya AI Agent EduTrack. Dataset sudah dimuat otomatis. Ajukan pertanyaan Anda tentang data akademik mahasiswa — saya akan menjawab berdasarkan data aktual.<br><br>Gunakan contoh pertanyaan di atas untuk memulai.</div>
+      </div>
+    </div>
+    <form class="chat-form" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Contoh: Siapa mahasiswa dengan nilai tertinggi?" autocomplete="off" />
+      <button type="submit">Kirim ➤</button>
+    </form>
+    <div style="text-align:right;margin-top:8px">
+      <button class="btn btn-secondary" id="btn-clear-chat" style="font-size:.78rem">🗑️ Hapus Riwayat</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: VISUALISASI
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page" id="page-visualisasi">
+    <div class="page-header">
+      <h2>📊 Visualisasi Data Akademik</h2>
+      <p>Chart interaktif lengkap untuk analisis mendalam.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="viz-distribusi">Distribusi Nilai</button>
+      <button class="tab-btn" data-tab="viz-semester">Tren Semester</button>
+      <button class="tab-btn" data-tab="viz-matakuliah">Mata Kuliah</button>
+      <button class="tab-btn" data-tab="viz-prodi">Program Studi</button>
+      <button class="tab-btn" data-tab="viz-kehadiran">Kehadiran vs Nilai</button>
+      <button class="tab-btn" data-tab="viz-risiko">Peta Risiko</button>
+    </div>
+
+    <!-- Tab: Distribusi -->
+    <div class="tab-panel active" id="viz-distribusi">
+      <div class="chart-row cols-1-2">
+        <div class="card">
+          <div class="card-title">📊 Histogram Distribusi Nilai</div>
+          <div class="chart-container"><canvas id="viz-chart-dist" height="200"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎓 Distribusi Huruf Mutu</div>
+          <div class="chart-container"><canvas id="viz-chart-grade" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Semester Trend -->
+    <div class="tab-panel" id="viz-semester">
+      <div class="card">
+        <div class="card-title">📈 Tren Nilai & IPK Per Semester</div>
+        <div class="chart-container"><canvas id="viz-chart-semester" height="160"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tab: Mata Kuliah -->
+    <div class="tab-panel" id="viz-matakuliah">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🎯 Tingkat Kelulusan Per Mata Kuliah</div>
+        <div class="chart-container"><canvas id="viz-chart-passing" height="260"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📚 Perbandingan Nilai Rata-rata Per Mata Kuliah</div>
+        <div class="chart-container"><canvas id="viz-chart-course" height="180"></canvas></div>
+      </div>
+      <div class="section-title">📋 Statistik Lengkap Mata Kuliah</div>
+      <div id="tbl-courses"></div>
+    </div>
+
+    <!-- Tab: Program Studi -->
+    <div class="tab-panel" id="viz-prodi">
+      <div class="chart-row cols-2">
+        <div class="card">
+          <div class="card-title">🏫 Nilai & Kehadiran Per Prodi</div>
+          <div class="chart-container"><canvas id="viz-chart-prodi" height="220"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🕸️ Radar Perbandingan Prodi</div>
+          <div class="chart-container"><canvas id="viz-chart-radar" height="220"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Kehadiran vs Nilai -->
+    <div class="tab-panel" id="viz-kehadiran">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🔗 Scatter Plot: Kehadiran vs Nilai</div>
+        <div class="chart-container"><canvas id="viz-chart-scatter" height="250"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Hasil Analisis Korelasi</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px">
+          <div class="kpi-card">
+            <div class="kpi-icon">📐</div>
+            <div class="kpi-val" id="corr-r" style="font-size:1.4rem">—</div>
+            <div class="kpi-lbl">Korelasi Pearson (r)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📉</div>
+            <div class="kpi-val" id="corr-p" style="font-size:1.4rem">—</div>
+            <div class="kpi-lbl">P-Value</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">💪</div>
+            <div class="kpi-val" id="corr-str" style="font-size:1.2rem">—</div>
+            <div class="kpi-lbl">Kekuatan</div>
+          </div>
+        </div>
+        <p style="font-size:.85rem;color:var(--muted)" id="corr-interp">—</p>
+      </div>
+    </div>
+
+    <!-- Tab: Risiko -->
+    <div class="tab-panel" id="viz-risiko">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🚨 Peta Risiko Akademik Mahasiswa</div>
+        <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="legend-row"><div class="legend-dot" style="background:#22c55e"></div> Normal</div>
+          <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div> Butuh Perhatian</div>
+          <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div> Prioritas Tinggi</div>
+        </div>
+        <div class="chart-container"><canvas id="viz-chart-risk" height="240"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: AI INSIGHTS
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page" id="page-insights">
+    <div class="page-header">
+      <h2>💡 AI Insights – Temuan Pola Akademik</h2>
+      <p>Sistem secara otomatis mendeteksi pola dan anomali berdasarkan kalkulasi statistik data aktual.</p>
+    </div>
+
+    <div class="section-title">🔍 Temuan Otomatis</div>
+    <div class="insight-grid" id="insights-grid"></div>
+
+    <div class="section-title">🚨 Rekomendasi Pendampingan Mahasiswa</div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+        <div>
+          <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px">
+            Ambang Batas Nilai: <strong id="risk-nilai-val">55</strong>
+          </label>
+          <input type="range" id="risk-nilai" min="30" max="80" value="55" style="width:100%"/>
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px">
+            Ambang Batas Kehadiran (%): <strong id="risk-kehad-val">70</strong>
+          </label>
+          <input type="range" id="risk-kehad" min="40" max="90" value="70" style="width:100%"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">
+        <div><span style="font-size:.8rem;color:var(--muted)">Mahasiswa Berisiko:</span> <strong id="risk-count">—</strong></div>
+        <div><span style="font-size:.8rem;color:var(--muted)">Prioritas Tinggi:</span> <strong id="risk-high" style="color:var(--danger)">—</strong></div>
+      </div>
+      <div id="tbl-risk"></div>
+    </div>
+
+    <div class="section-title">🔍 Laporan Kualitas Data</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px">
+      <div class="kpi-card">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-val" id="qual-total" style="font-size:1.4rem">—</div>
+        <div class="kpi-lbl">Total Baris</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📑</div>
+        <div class="kpi-val" id="qual-cols" style="font-size:1.4rem">—</div>
+        <div class="kpi-lbl">Total Kolom</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">❓</div>
+        <div class="kpi-val" id="qual-missing" style="font-size:1.4rem;color:var(--warn)">—</div>
+        <div class="kpi-lbl">Nilai Kosong</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔁</div>
+        <div class="kpi-val" id="qual-dup" style="font-size:1.4rem;color:var(--orange)">—</div>
+        <div class="kpi-lbl">Duplikat</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detail Nilai Kosong Per Kolom</div>
+      <div id="miss-detail" style="font-size:.85rem"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: DATA MAHASISWA
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page" id="page-mahasiswa">
+    <div class="page-header">
+      <h2>👨‍🎓 Data & Pencarian Mahasiswa</h2>
+      <p>Cari, filter, dan telusuri data seluruh mahasiswa.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="mhs-tab-search">🔎 Cari</button>
+      <button class="tab-btn" data-tab="mhs-tab-ranking">🏆 Peringkat</button>
+      <button class="tab-btn" data-tab="mhs-tab-data">📋 Semua Data</button>
+    </div>
+
+    <!-- Tab: Cari -->
+    <div class="tab-panel active" id="mhs-tab-search">
+      <div class="section-title">🔎 Cari Berdasarkan Nama atau NIM</div>
+      <div class="input-row">
+        <input type="text" id="search-input" placeholder="Masukkan nama atau NIM mahasiswa..." />
+        <button class="btn btn-primary" id="search-btn">Cari</button>
+      </div>
+      <div id="search-results">
+        <div class="empty-state">
+          <div class="es-icon">🔍</div>
+          <h3>Belum ada pencarian</h3>
+          <p>Masukkan nama atau NIM untuk mencari data mahasiswa.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Peringkat -->
+    <div class="tab-panel" id="mhs-tab-ranking">
+      <div class="section-title">🏆 Top 20 Mahasiswa (IPK Tertinggi)</div>
+      <div id="tbl-top"></div>
+      <div class="section-title" style="margin-top:24px">⚠️ 20 Mahasiswa IPK Terendah</div>
+      <div id="tbl-bottom"></div>
+    </div>
+
+    <!-- Tab: Semua Data -->
+    <div class="tab-panel" id="mhs-tab-data">
+      <div class="section-title">📋 Dataset Lengkap</div>
+      <div class="input-row">
+        <select id="filter-mk" style="max-width:250px"><option value="">Semua Mata Kuliah</option></select>
+        <select id="filter-grade" style="max-width:150px"><option value="">Semua Grade</option></select>
+        <span style="font-size:.8rem;color:var(--muted)" id="tbl-count"></span>
+      </div>
+      <div id="tbl-mahasiswa"></div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:8px">*Menampilkan maks. 500 baris. Gunakan filter untuk mempersempit hasil.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PAGE: EKSPOR
+  ══════════════════════════════════════════════════════════ -->
+  <section class="page" id="page-ekspor">
+    <div class="page-header">
+      <h2>📁 Ekspor Laporan Analisis</h2>
+      <p>Unduh hasil analisis dalam berbagai format untuk pelaporan dan dokumentasi.</p>
+    </div>
+
+    <div class="section-title">📊 Ringkasan Data yang Akan Diekspor</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);max-width:500px">
+      <div class="kpi-card">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-val" id="exp-mahasiswa" style="font-size:1.4rem">—</div>
+        <div class="kpi-lbl">Mahasiswa</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-val" id="exp-entri" style="font-size:1.4rem">—</div>
+        <div class="kpi-lbl">Total Entri</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🎓</div>
+        <div class="kpi-val" id="exp-ipk" style="font-size:1.4rem">—</div>
+        <div class="kpi-lbl">Rata-rata IPK</div>
+      </div>
+    </div>
+
+    <div class="section-title">📥 Pilihan Format Ekspor</div>
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="export-icon">📄</div>
+        <h4>CSV</h4>
+        <p>Dataset bersih, siap diimpor ke Excel atau perangkat lunak analisis lainnya.</p>
+        <button class="btn btn-primary" id="btn-dl-csv">⬇️ Unduh CSV</button>
+      </div>
+      <div class="export-card">
+        <div class="export-icon">📊</div>
+        <h4>Excel (Multi-Sheet)</h4>
+        <p>Laporan lengkap dalam 7 sheet terpisah: data, ringkasan, MK, prodi, tren, top, risiko.</p>
+        <button class="btn btn-success" id="btn-dl-excel">⬇️ Unduh Excel</button>
+      </div>
+      <div class="export-card">
+        <div class="export-icon">🌐</div>
+        <h4>Laporan HTML</h4>
+        <p>Laporan lengkap siap dikirim atau dicetak via browser, berisi tabel dan insight.</p>
+        <button class="btn btn-warn" style="color:#fff" id="btn-dl-html">⬇️ Unduh Laporan HTML</button>
+      </div>
+      <div class="export-card">
+        <div class="export-icon">🗄️</div>
+        <h4>Dataset Demo CSV</h4>
+        <p>Unduh file CSV dataset dummy yang digunakan sebagai contoh data awal.</p>
+        <button class="btn btn-secondary" id="btn-dl-dummy-csv">⬇️ Unduh Dataset Demo</button>
+      </div>
+    </div>
+
+    <div class="section-title">🔍 Preview Laporan</div>
+    <div class="tabs" style="margin-top:0">
+      <button class="tab-btn active" data-tab="exp-tab-top" onclick="switchExpTab(this,'exp-tab-top')">Top 10 Mahasiswa</button>
+      <button class="tab-btn" data-tab="exp-tab-courses" onclick="switchExpTab(this,'exp-tab-courses')">Statistik Mata Kuliah</button>
+    </div>
+    <div id="exp-tab-top" class="tab-panel active"><div id="exp-tbl-top"></div></div>
+    <div id="exp-tab-courses" class="tab-panel"><div id="exp-tbl-courses"></div></div>
+  </section>
+
+</div><!-- /#main -->
+
+<!-- ── Scripts (order matters) ───────────────────────────────────────────── -->
+<script src="js/data-generator.js"></script>
+<script src="js/data-analyzer.js"></script>
+<script src="js/ai-agent.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/exporter.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// Helper for ekspor tab switching
+function switchExpTab(btn, tabId) {
+  document.querySelectorAll('#page-ekspor .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#page-ekspor .tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId)?.classList.add('active');
+}
+</script>
+
+</body>
+</html>
